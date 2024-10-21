@@ -1,0 +1,160 @@
+-- Your name and cohort here
+-- Aryna Semianiuk
+-- C402
+
+/*
+Basic Selects
+
+REQUIREMENT - Use a multi-line comment to paste the first 5 or fewer results under your query
+		     Also include the total records returned.
+*/
+
+
+-- #1: List all users, including username and dateJoined.
+select uname, dateJoined
+from user;
+
+/*
+admin 2023-02-14 13:13:28
+wiley 2023-04-01 13:13:28
+james 2023-03-15 19:15:48
+...
+
+7 row(s) returned
+*/
+
+
+-- #2: List the username and datejoined from users with the newest users at the top.
+select uname, dateJoined
+from user
+order by dateJoined desc;
+
+/*
+wiley 2023-04-01 13:13:28
+sam 2023-03-15 19:16:59
+robert 2023-03-15 19:16:43
+...
+
+7 row(s) returned
+*/
+
+
+-- #3: List all usernames and dateJoined for users who joined in March 2023.
+select uname, dateJoined
+from user
+where dateJoined between '2023-03-01' and '2023-03-31';
+
+/*
+james 2023-03-15 19:15:48
+kendra 2023-03-15 19:16:06
+alice 2023-03-15 19:16:21
+...
+
+5 row(s) returned
+*/
+
+
+-- #4: List the different role names a user can have.
+select distinct r.name
+from role r
+join userroles on r.roleid = userroles.roleid;
+
+/*
+admin
+user
+
+2 row(s) returned
+*/
+
+
+-- #5: List all the orders.
+select * from `order`;
+
+/*
+1 1 WLY 1 2023-03-15 19:20:35 100 38.73 partial_fill
+2 6 WLY 2 2023-03-15 19:20:50 -10 38.73  filled
+3 6 NFLX 2 2023-03-15 19:21:12 -100 243.15 pending
+...
+
+24 row(s) returned
+*/
+
+
+-- #6: List all orders in March where the absolute net order amount is greater than 1000.
+select orderid, userid, symbol, shares, price, abs(shares * price) as net_order_amount
+from `order`
+where ordertime between '2023-03-01' and '2023-03-31' and abs(shares * price) > 1000;
+
+/*
+1 1 WLY 100 38.73 3873.00
+3 6 NFLX -100 243.15 24315.00
+4 5 A 10 129.89 1298.80
+...
+
+16 row(s) returned
+*/
+
+
+-- #7: List all the unique status types from orders.
+select distinct status from `order`;
+
+/* 
+partial_fill
+filled
+pending
+...
+
+5 row(s) returned
+*/
+
+
+-- #8: List all pending and partial fill orders with oldest orders first.
+select *
+from `order`
+where status in ('pending', 'partial')
+order by ordertime asc;
+
+/*
+3 6 NFLX 2 2023-03-15 19:21:12 -100 243.15 pending
+12 4 QQQ 2 2023-03-15 19:24:32 -100 268.27 pending
+13 4 QQQ 2 2023-03-15 19:24:32 -100 268.27 pending
+...
+
+8 row(s) returned
+*/
+
+
+-- #9: List the 10 most expensive financial products where the productType is stock.
+-- Sort the results with the most expensive product at the top
+select symbol, name, price
+from product
+where producttype = 'stock'
+order by price desc
+limit 10;
+
+/*
+207940.KS Samsung Biologics Co.,Ltd. 830000.00
+003240.KS Taekwang Industrial Co.,Ltd. 715000.00
+000670.KS Young Poong Corporation 630000.00
+...
+
+10 row(s) returned
+*/
+
+
+-- #10: Display orderid, fillid, userid, symbol, and absolute net fill amount
+-- from fills where the absolute net fill is greater than $1000.
+-- Sort the results with the largest absolute net fill at the top.
+select f.orderid, f.fillid, f.userid, f.symbol, abs(f.share * f.price) as net_fill_amount
+from fill f
+where abs(f.share * f.price) > 1000
+order by net_fill_amount desc;
+
+/*
+11 11 5 SPY 27429.75
+14 12 4 SPY 27429.75
+6 5 1 GS 3056.30
+...
+
+10 row(s) returned
+*/

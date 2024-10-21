@@ -1,0 +1,154 @@
+-- Your name and cohort here
+-- Aryna Semianiuk
+-- C402
+
+/*
+Join Queries
+
+REQUIREMENT - Use a multi-line comment to paste the first 5 or fewer results under your query
+		     Also include the total records returned.
+*/
+
+USE orderbook_activity_db;
+
+-- #1: Display the dateJoined and username for admin users.
+select u.datejoined, u.uname
+from user u
+join userroles ur on u.userid = ur.userid
+join role r on ur.roleid = r.roleid
+where r.name = 'admin';
+/* 
+2023-02-14 13:13:28 admin
+2023-04-01 13:13:28 wiley
+2023-03-15 19:16:21 alice
+
+3 row(s) returned
+*/
+
+
+-- #2: Display each absolute order net (share*price), status, symbol, trade date, and username.
+-- Sort the results with largest the absolute order net (share*price) at the top.
+-- Include only orders that were not canceled or partially canceled.
+select o.orderid, abs(o.shares * o.price) as net_order, o.status, o.symbol, o.ordertime, u.uname
+from `order` o
+join user u on o.userid = u.userid
+where o.status not in ('canceled', 'partially canceled')
+order by net_order desc;
+
+/* 
+11 36573.00 partial_fill SPY 2023-03-15 19:24:21 alice
+6 30563.00 canceled_partial_fill GS 2023-03-15 19:22:11 admin
+14 27429.75 filled SPY 2023-03-15 19:24:47 kendra
+...
+
+21 row(s) returned
+*/
+
+
+-- #3: Display the orderid, symbol, status, order shares, filled shares, and price for orders with fills.
+-- Note that filledShares are the opposite sign (+-) because they subtract from ordershares!
+select o.orderid, o.symbol, o.status, o.shares as order_shares, -f.share as filled_shares, f.price
+from `order` o
+join fill f on o.orderid = f.orderid;
+
+/* 
+1 WLY partial_fill 100 10 38.73
+2 WLY filled -10 -10 38.73
+4 A filled 10 10 129.89
+...
+
+14 row(s) returned
+*/
+
+
+-- #4: Display all partial_fill orders and how many outstanding shares are left.
+-- Also include the username, symbol, and orderid.
+select o.orderid, u.uname as username, o.symbol, o.shares as original_shares, coalesce(sum(f.share), 0) as filled_shares, o.shares - coalesce(sum(f.share), 0) as outstanding_shares
+from `order` o
+left join fill f on o.orderid = f.orderid
+join user u on o.userid = u.userid
+group by o.orderid, u.uname, o.symbol, o.shares
+having filled_shares > 0 and outstanding_shares > 0
+order by o.orderid;
+
+/*
+0 row(s) returned
+*/
+
+
+-- #5: Display the orderid, symbol, status, order shares, filled shares, and price for orders with fills.
+-- Also include the username, role, absolute net amount of shares filled, and absolute net order.
+-- Sort by the absolute net order with the largest value at the top.
+select o.orderid, o.symbol, o.status, o.shares as order_shares, ifnull(sum(f.share), 0) as filled_shares, o.price, 
+       u.uname, r.name as role, abs(o.shares * o.price) as net_order, abs(ifnull(sum(f.share * f.price), 0)) as net_filled
+from `order` o
+join user u on o.userid = u.userid
+join userroles ur on u.userid = ur.userid
+join role r on ur.roleid = r.roleid
+left join fill f on o.orderid = f.orderid
+group by o.orderid, o.symbol, o.status, o.shares, o.price, u.uname, r.name
+order by net_order desc;
+
+/*
+11 SPY partial_fill 100 -75 365.73 alice admin 36573.00 27429.75
+6 GS canceled_partial_fill 100 -10 305.63 admin admin 30563.00 3056.30
+11 SPY filled -75 75 365.73 kendra user 27429.75 27429.75
+...
+
+24 row(s) returned
+*/
+
+
+-- #6: Display the username and user role for users who have not placed an order.
+select u.uname, r.name as role
+from user u
+join userroles ur on u.userid = ur.userid
+join role r on ur.roleid = r.roleid
+left join `order` o on u.userid = o.userid
+where o.userid is null;
+
+/* 
+sam user
+wiley admin
+
+2 row(s) returned
+*/
+
+
+-- #7: Display orderid, username, role, symbol, price, and number of shares for orders with no fills.
+select o.orderid, u.uname, r.name as role, o.symbol, o.price, o.shares
+from `order` o
+join user u on o.userid = u.userid
+join userroles ur on u.userid = ur.userid
+join role r on ur.roleid = r.roleid
+left join fill f on o.orderid = f.orderid
+where f.orderid is null;
+
+/*
+19 alice admin GOOG 100.82 100
+21 alice admin A 129.89 -1
+22 alice adminn A 129.89 2
+...
+
+11 row(s) returned
+*/
+
+
+-- #8: Display the symbol, username, role, and number of filled shares where the order symbol is WLY.
+-- Include all orders, even if the order has no fills.
+select o.symbol, u.uname, r.name as role, ifnull(sum(f.share), 0) as filled_shares
+from `order` o
+join user u on o.userid = u.userid
+join userroles ur on u.userid = ur.userid
+join role r on ur.roleid = r.roleid
+left join fill f on o.orderid = f.orderid
+where o.symbol = 'wly'
+group by o.symbol, u.uname, r.name;
+
+/*
+WLY admin admin -10
+WLY robert user 10
+WLY james user 0
+
+3 row(s) returned
+*/
